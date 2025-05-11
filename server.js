@@ -20,6 +20,17 @@ app.use(cors());
 app.use(morgan('dev'));
 
 // Routes
+
+// Root route for health checks and deployment verification
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'DragNotes API is running',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/notes', notesRoutes);
 
