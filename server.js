@@ -17,7 +17,11 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors());
-app.use(morgan('dev'));
+
+// Only use morgan in development
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'));
+}
 
 // Routes
 
@@ -34,24 +38,6 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/notes', notesRoutes);
 
-// Connect to MongoDB Atlas and Start Server
-const startServer = async () => {
-  try {
-    await connectDB();
-    
-    // Start server after successful database connection
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
-  }
-};
-
-startServer();
-
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error(error);
@@ -60,3 +46,31 @@ app.use((error, req, res, next) => {
   const data = error.data;
   res.status(status).json({ message, data });
 });
+
+// Connect to MongoDB Atlas
+const initializeDb = async () => {
+  try {
+    await connectDB();
+    console.log('Database connected successfully');
+  } catch (error) {
+    console.error('Failed to connect to database:', error);
+    // Don't exit process on Vercel
+    if (process.env.NODE_ENV !== 'production') {
+      process.exit(1);
+    }
+  }
+};
+
+// Initialize database connection
+initializeDb();
+
+// Start server in non-Vercel environments
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+// Export the app for Vercel serverless deployment
+module.exports = app;
